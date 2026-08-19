@@ -330,7 +330,7 @@ def run_comparison(qubits_list= [2, 3, 4, 5, 6, 7, 8],num_trials = 5, precision 
             methods["Original (exact)"][n_q].append(len(Prows_o))
 
             # cut-off
-            Prows_c, w_c = bvn_cutoff(S, precision=precision,max_iter=5**(n_q))
+            Prows_c, w_c = bvn_cutoff(S, precision=precision, max_iter=5**(n_q))
             methods["Cut-off"][n_q].append(len(Prows_c))
             # largest-weight
             Prows_l, w_l = bvn_largest_weights(S, precision=precision)
@@ -350,18 +350,66 @@ def run_comparison(qubits_list= [2, 3, 4, 5, 6, 7, 8],num_trials = 5, precision 
             vals = methods[method][n_q]
             print(f"    {method:20s}: mean={np.mean(vals):6.1f}  std={np.std(vals):6.1f}")
 
+    # # ------------------------------------------------------------------
+    # # 11. Plot, in version 1
+    # # ------------------------------------------------------------------
+    # plt.figure(figsize=(10, 6))
+    # markers = {'Original (exact)': 'o-', 'Threshold': 's--', 'Cut-off': '^-.',
+    #            'Largest-weight': 'D:', 'Pauli': 'P-'}
+    # for method, data in methods.items():
+    #     xs = qubits_list
+    #     ys = [np.mean(data[q]) for q in qubits_list]
+    #     yerr = [np.std(data[q]) for q in qubits_list]
+    #     plt.errorbar(xs, ys, yerr=yerr, label=method, marker=markers.get(method[0], 'o'),
+    #                  markersize=8, capsize=5)
+    # plt.yscale("log")
+    # plt.xlabel("Number of qubits")
+    # plt.ylabel("Number of terms (mean ± std)")
+    # plt.title(f"BVN decomposition term count comparison\n(error tolerance = {precision})")
+    # plt.legend()
+    # plt.grid(True, which="both", ls="--", alpha=0.6)
+    # plt.tight_layout()
+    # plt.savefig("bvn_term_comparison.pdf")
+    # plt.savefig("bvn_term_comparison.png", dpi=150)
+    # plt.show()
     # ------------------------------------------------------------------
-    # 11. Plot
+    # 11. Plot (mean ± std, with individual trials)
     # ------------------------------------------------------------------
     plt.figure(figsize=(10, 6))
-    markers = {'Original (exact)': 'o-', 'Threshold': 's--', 'Cut-off': '^-.',
-               'Largest-weight': 'D:', 'Pauli': 'P-'}
+
+    # define method colors manually or use the existing markers
+    colors = {
+        'Original (exact)': 'C0',
+        'Cut-off': 'C1',
+        'Largest-weight': 'C2',
+        'Pauli': 'C3',
+    }
+    markers = {
+        'Original (exact)': 'o',
+        'Cut-off': '^',
+        'Largest-weight': 'D',
+        'Pauli': 'P',
+    }
+
     for method, data in methods.items():
         xs = qubits_list
         ys = [np.mean(data[q]) for q in qubits_list]
         yerr = [np.std(data[q]) for q in qubits_list]
-        plt.errorbar(xs, ys, yerr=yerr, label=method, marker=markers.get(method[0], 'o'),
-                     markersize=8, capsize=5)
+        color = colors[method]
+        marker = markers[method]
+
+        # plot individual trials (jittered, semi-transparent)
+        for q in qubits_list:
+            x_jitter = q + np.random.uniform(-0.08, 0.08, size=len(data[q]))
+            plt.scatter(x_jitter, data[q],
+                        alpha=0.25, s=10, color=color,
+                        edgecolors='none', zorder=1)
+
+        # mean ± std line
+        plt.errorbar(xs, ys, yerr=yerr, label=method,
+                    color=color, marker=marker,
+                    markersize=8, capsize=5, linewidth=3, zorder=2)
+
     plt.yscale("log")
     plt.xlabel("Number of qubits")
     plt.ylabel("Number of terms (mean ± std)")
@@ -372,7 +420,6 @@ def run_comparison(qubits_list= [2, 3, 4, 5, 6, 7, 8],num_trials = 5, precision 
     plt.savefig("bvn_term_comparison.pdf")
     plt.savefig("bvn_term_comparison.png", dpi=150)
     plt.show()
-
 
 def plot_precision_vs_terms(n_qubits=6, n_trials=3,
                             epsilon_range=(0.0001, 0.1, 4),
@@ -459,6 +506,6 @@ if __name__ == "__main__":
         }
     )
     np.random.seed(42)
-    run_comparison(qubits_list= [2, 3,4,5,6,7],num_trials = 5, precision = 0.01)
-    for n in range(2,13,1):
-        plot_precision_vs_terms(n_qubits=n, n_trials=5)
+    run_comparison(qubits_list= [2, 3,4,5,6,7], num_trials = 50, precision = 0.01)
+    # for n in range(3,4,2):
+    #     plot_precision_vs_terms(n_qubits=n, n_trials=50)
